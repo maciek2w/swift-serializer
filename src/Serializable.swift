@@ -59,12 +59,11 @@ public class Serializable: NSObject {
     public func toJson() -> NSData {
         let dictionary = self.toDictionary()
         
-        var err: NSError?
-        
-        if let json = NSJSONSerialization.dataWithJSONObject(dictionary, options: .PrettyPrinted, error: &err) {
+        do {
+            let json = try NSJSONSerialization.dataWithJSONObject(dictionary, options: .PrettyPrinted)
             return json
-        } else {
-            let error = err?.description ?? "nil"
+        } catch let err as NSError {
+            let error = err.description ?? "nil"
             print("ERROR: Unable to serialize json, error: \(error)")
             NSNotificationCenter.defaultCenter().postNotificationName("CrashlyticsLogNotification", object: self, userInfo: ["string": "unable to serialize json, error: \(error)"])
             abort()
