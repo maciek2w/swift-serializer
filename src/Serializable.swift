@@ -12,6 +12,10 @@
 
 import Foundation
 
+enum SerializableError: ErrorType {
+    case NotValidJSONObject
+}
+
 public class Serializable: NSObject {
     
     /**
@@ -56,17 +60,20 @@ public class Serializable: NSObject {
     
         :returns: The class as JSON, wrapped in NSData.
     */
-    public func toJson() -> NSData {
-        let dictionary = self.toDictionary()
+    public func toJson() throws -> NSData {
+        let dictionary = self //.toDictionary()
         
-        do {
-            let json = try NSJSONSerialization.dataWithJSONObject(dictionary, options: .PrettyPrinted)
-            return json
-        } catch let err as NSError {
-            let error = err.description ?? "nil"
-            print("ERROR: Unable to serialize json, error: \(error)")
-            NSNotificationCenter.defaultCenter().postNotificationName("CrashlyticsLogNotification", object: self, userInfo: ["string": "unable to serialize json, error: \(error)"])
-            abort()
+        if NSJSONSerialization.isValidJSONObject(dictionary) {
+            do {
+                let json = try NSJSONSerialization.dataWithJSONObject(dictionary, options: .PrettyPrinted)
+                return json
+            } catch {
+                print("ERROR: Unable to serialize json, error: \(error)")
+                NSNotificationCenter.defaultCenter().postNotificationName("CrashlyticsLogNotification", object: self, userInfo: ["string": "unable to serialize json, error: \(error)"])
+                abort()
+            }
+        } else {
+            throw SerializableError.NotValidJSONObject
         }
     }
     
@@ -75,8 +82,12 @@ public class Serializable: NSObject {
     
         :returns: The class as a JSON string.
     */
-    public func toJsonString() -> String! {
-        return NSString(data: self.toJson(), encoding: NSUTF8StringEncoding) as String!
+    public func toJsonString() -> String? {
+        do {
+            return try NSString(data: self.toJson(), encoding: NSUTF8StringEncoding) as String?
+        } catch {
+            return nil
+        }        
     }
 }
 
